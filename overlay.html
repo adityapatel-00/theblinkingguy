@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body {
+      background: transparent;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .eyes-container {
+      display: flex;
+      gap: 14px;
+      animation: pop-in 0.3s ease-out forwards;
+    }
+
+    /* ── Base eye ── */
+    .eye {
+      width: 44px;
+      height: 44px;
+      background: #fff;
+      border-radius: 50% 50% 49% 51% / 67% 68% 32% 33%;
+      position: relative;
+      box-shadow: inset -3px -3px 6px rgba(0,0,0,0.12), 0 2px 12px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .eye::before {
+      content: '';
+      position: absolute;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #5c8abf 0%, #3a6fa0 40%, #1a3a5c 100%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .eye::after {
+      content: '';
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #1a1a2e 0%, #000 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: inset -1px -1px 2px rgba(255,255,255,0.15);
+    }
+    .pupil-shine {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      top: 12px; left: 16px;
+      z-index: 3;
+    }
+    .eyelid {
+      position: absolute;
+      top: -100%; left: -2px; right: -2px;
+      height: 100%;
+      background: #f5c6a0;
+      border-radius: 0 0 50% 50%;
+      z-index: 4;
+      transition: top 0.08s ease-in-out;
+    }
+    /* JS-driven blink class */
+    .eyes-container.blink .eyelid { top: 0%; }
+    /* Lash element (hidden by default) */
+    .lashes {
+      display: none;
+      position: absolute;
+      top: -3px; left: 2px; right: 2px;
+      height: 8px;
+      z-index: 5;
+    }
+    .lashes span {
+      position: absolute;
+      width: 2px;
+      height: 6px;
+      background: #222;
+      border-radius: 1px;
+      transform-origin: bottom center;
+    }
+    .lashes span:nth-child(1) { left: 15%; transform: rotate(-25deg); }
+    .lashes span:nth-child(2) { left: 30%; transform: rotate(-12deg); height: 7px; }
+    .lashes span:nth-child(3) { left: 48%; transform: rotate(0deg); height: 8px; }
+    .lashes span:nth-child(4) { left: 65%; transform: rotate(12deg); height: 7px; }
+    .lashes span:nth-child(5) { left: 80%; transform: rotate(25deg); }
+
+    @keyframes blink {
+      0%, 100% { top: -100%; }
+      42% { top: -100%; }
+      45% { top: 0%; }
+      48% { top: 0%; }
+      51% { top: -100%; }
+      70% { top: -100%; }
+      73% { top: 0%; }
+      76% { top: -100%; }
+    }
+    @keyframes pop-in {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ══════════════════════════════════════
+       MODERN
+       ══════════════════════════════════════ */
+
+    /* Cute - pink, sparkly */
+    .style-cute .eye { background: #fff5f8; box-shadow: inset -3px -3px 6px rgba(255,105,180,0.15), 0 2px 14px rgba(255,105,180,0.3); }
+    .style-cute .eye::before { background: radial-gradient(circle at 38% 35%, #ff8ec4 0%, #e05595 40%, #b03070 100%); }
+    .style-cute .eyelid { background: #ffc0d0; }
+    .style-cute .pupil-shine { box-shadow: 4px 6px 0 2px rgba(255,255,255,0.7); }
+
+    /* Heroic - fiery orange */
+    .style-heroic .eye { background: #fff8f0; box-shadow: inset -3px -3px 6px rgba(255,100,0,0.15), 0 2px 14px rgba(255,80,0,0.35); }
+    .style-heroic .eye::before { background: radial-gradient(circle at 38% 35%, #ffb347 0%, #ff6600 40%, #cc3300 100%); }
+    .style-heroic .eyelid { background: #e8a060; }
+
+    /* Cyber - neon green on black */
+    .style-cyber .eye { background: #0a0a0a; box-shadow: inset 0 0 8px rgba(0,255,100,0.2), 0 0 16px rgba(0,255,100,0.4); }
+    .style-cyber .eye::before { background: radial-gradient(circle at 38% 35%, #00ff88 0%, #00cc55 40%, #008833 100%); box-shadow: 0 0 6px rgba(0,255,100,0.5); }
+    .style-cyber .eye::after { background: radial-gradient(circle at 35% 30%, #001a00 0%, #000 70%); }
+    .style-cyber .eyelid { background: #0d0d0d; }
+    .style-cyber .pupil-shine { background: rgba(0,255,120,0.8); }
+
+    /* Robot - angular, metallic blue */
+    .style-robot .eye { border-radius: 4px; background: #1a1a2e; border: 2px solid #44aaff; box-shadow: 0 0 10px rgba(68,170,255,0.4); }
+    .style-robot .eye::before { width: 18px; height: 18px; border-radius: 3px; background: radial-gradient(circle, #44aaff 0%, #2266aa 60%, #113355 100%); }
+    .style-robot .eye::after { width: 8px; height: 8px; border-radius: 2px; background: #000; }
+    .style-robot .eyelid { background: #12122a; border-radius: 0; }
+    .style-robot .pupil-shine { background: rgba(68,170,255,0.9); border-radius: 2px; width: 4px; height: 4px; }
+
+    /* Neon - hot pink glow */
+    .style-neon .eye { background: #0a0010; box-shadow: 0 0 16px rgba(255,0,200,0.5), inset 0 0 8px rgba(255,0,200,0.2); }
+    .style-neon .eye::before { background: radial-gradient(circle at 38% 35%, #ff00cc 0%, #cc0099 40%, #880066 100%); box-shadow: 0 0 8px rgba(255,0,200,0.6); }
+    .style-neon .eye::after { background: #000; }
+    .style-neon .eyelid { background: #0a0010; }
+    .style-neon .pupil-shine { background: rgba(255,100,240,0.9); }
+
+    /* Minimal - grey, clean */
+    .style-minimal .eye { background: #f0f0f0; box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+    .style-minimal .eye::before { background: radial-gradient(circle at 38% 35%, #888 0%, #666 40%, #444 100%); }
+    .style-minimal .eyelid { background: #d0d0d0; }
+    .style-minimal .pupil-shine { background: rgba(255,255,255,0.7); }
+
+    /* Pixel - blocky retro */
+    .style-pixel .eye { border-radius: 2px; background: #fff; box-shadow: 2px 2px 0 #000; image-rendering: pixelated; }
+    .style-pixel .eye::before { width: 18px; height: 18px; border-radius: 0; background: #2244aa; }
+    .style-pixel .eye::after { width: 8px; height: 8px; border-radius: 0; background: #000; }
+    .style-pixel .eyelid { background: #ddbb88; border-radius: 0; }
+    .style-pixel .pupil-shine { border-radius: 0; width: 4px; height: 4px; }
+
+    /* ══════════════════════════════════════
+       FANTASY
+       ══════════════════════════════════════ */
+
+    /* Demon - blood red */
+    .style-demon .eye { background: #1a0000; box-shadow: inset 0 0 8px rgba(255,0,0,0.3), 0 0 16px rgba(200,0,0,0.5); }
+    .style-demon .eye::before { background: radial-gradient(circle at 38% 35%, #ff2222 0%, #cc0000 40%, #660000 100%); }
+    .style-demon .eye::after { width: 8px; height: 14px; border-radius: 40%; background: #000; }
+    .style-demon .eyelid { background: #1a0000; }
+    .style-demon .pupil-shine { background: rgba(255,80,80,0.7); }
+
+    /* Galaxy - cosmic purple */
+    .style-galaxy .eye { background: #0a0015; box-shadow: 0 0 14px rgba(150,50,255,0.4); }
+    .style-galaxy .eye::before { background: radial-gradient(circle at 38% 35%, #c77dff 0%, #9b5de5 35%, #5a189a 70%, #240046 100%); }
+    .style-galaxy .eye::after { background: radial-gradient(circle at 35% 30%, #10002b 0%, #000 70%); }
+    .style-galaxy .eyelid { background: #10002b; }
+    .style-galaxy .pupil-shine { background: rgba(200,150,255,0.9); box-shadow: 5px 5px 0 1px rgba(255,255,255,0.5); }
+
+    /* Dragon - molten gold slit */
+    .style-dragon .eye { background: #1a1000; box-shadow: 0 0 14px rgba(255,180,0,0.4); }
+    .style-dragon .eye::before { background: radial-gradient(circle at 38% 35%, #ffcc00 0%, #ff8800 40%, #aa4400 100%); }
+    .style-dragon .eye::after { width: 4px; height: 16px; border-radius: 2px; background: #000; }
+    .style-dragon .eyelid { background: #2a2000; }
+    .style-dragon .pupil-shine { background: rgba(255,220,100,0.8); }
+
+    /* Angel - heavenly white-gold */
+    .style-angel .eye { background: #fffff5; box-shadow: 0 0 18px rgba(255,240,180,0.5), inset 0 0 6px rgba(255,240,180,0.3); }
+    .style-angel .eye::before { background: radial-gradient(circle at 38% 35%, #ffeebb 0%, #ddc080 40%, #bbaa66 100%); }
+    .style-angel .eye::after { background: radial-gradient(circle at 35% 30%, #554400 0%, #332200 70%); }
+    .style-angel .eyelid { background: #fff8e8; }
+    .style-angel .pupil-shine { background: rgba(255,255,240,0.95); box-shadow: 4px 5px 0 2px rgba(255,255,220,0.5); }
+
+    /* Wizard - deep mystical blue */
+    .style-wizard .eye { background: #000520; box-shadow: 0 0 14px rgba(80,80,255,0.4); }
+    .style-wizard .eye::before { background: radial-gradient(circle at 38% 35%, #6666ff 0%, #3333cc 40%, #110066 100%); box-shadow: 0 0 6px rgba(100,100,255,0.4); }
+    .style-wizard .eye::after { background: #000; }
+    .style-wizard .eyelid { background: #000520; }
+    .style-wizard .pupil-shine { background: rgba(180,180,255,0.9); box-shadow: 3px 6px 0 1px rgba(200,200,255,0.5); }
+
+    /* Phoenix - blazing flame */
+    .style-phoenix .eye { background: #1a0800; box-shadow: 0 0 18px rgba(255,100,0,0.5); }
+    .style-phoenix .eye::before { background: radial-gradient(circle at 38% 35%, #ffdd00 0%, #ff6600 40%, #cc2200 80%, #660000 100%); box-shadow: 0 0 8px rgba(255,100,0,0.6); }
+    .style-phoenix .eye::after { background: radial-gradient(circle, #fff 0%, #ff6600 70%); width: 8px; height: 8px; }
+    .style-phoenix .eyelid { background: #1a0800; }
+    .style-phoenix .pupil-shine { background: rgba(255,255,200,0.95); }
+
+    /* Elemental - swirling teal */
+    .style-elemental .eye { background: #001515; box-shadow: 0 0 14px rgba(0,200,200,0.4); }
+    .style-elemental .eye::before { background: radial-gradient(circle at 30% 30%, #00ffee 0%, #00aaaa 40%, #005555 100%); }
+    .style-elemental .eye::after { background: #001010; }
+    .style-elemental .eyelid { background: #001515; }
+    .style-elemental .pupil-shine { background: rgba(0,255,230,0.85); }
+
+    /* ══════════════════════════════════════
+       ANIMALS
+       ══════════════════════════════════════ */
+
+    /* Cat - yellow slit */
+    .style-cat .eye { border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #fffde8; }
+    .style-cat .eye::before { background: radial-gradient(circle at 38% 35%, #d4c422 0%, #b8a010 40%, #7a6a00 100%); }
+    .style-cat .eye::after { width: 4px; height: 16px; border-radius: 2px; background: #000; }
+    .style-cat .eyelid { background: #c8b888; }
+
+    /* Snake - green slit */
+    .style-snake .eye { border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%; background: #f0ffe0; }
+    .style-snake .eye::before { background: radial-gradient(circle at 38% 35%, #88cc22 0%, #669900 40%, #335500 100%); }
+    .style-snake .eye::after { width: 3px; height: 16px; border-radius: 1px; background: #000; }
+    .style-snake .eyelid { background: #668844; }
+    .style-snake .pupil-shine { background: rgba(200,255,100,0.7); }
+
+    /* Owl - massive golden */
+    .style-owl .eye { width: 48px; height: 48px; border-radius: 50%; background: #fff8e0; box-shadow: 0 0 12px rgba(180,140,0,0.3); }
+    .style-owl .eye::before { width: 30px; height: 30px; background: radial-gradient(circle at 38% 35%, #eebb00 0%, #cc9900 40%, #886600 100%); }
+    .style-owl .eye::after { width: 14px; height: 14px; background: #000; }
+    .style-owl .eyelid { background: #aa8844; }
+    .style-owl .pupil-shine { width: 8px; height: 8px; top: 8px; left: 18px; }
+
+    /* Wolf - icy pale */
+    .style-wolf .eye { border-radius: 48% 52% 46% 54% / 60% 58% 42% 40%; background: #f0f5ff; }
+    .style-wolf .eye::before { background: radial-gradient(circle at 38% 35%, #aaccee 0%, #7799cc 40%, #445577 100%); }
+    .style-wolf .eye::after { background: #000; width: 9px; height: 11px; border-radius: 50%; }
+    .style-wolf .eyelid { background: #889aaa; }
+
+    /* Frog - huge green round */
+    .style-frog .eye { width: 46px; height: 46px; border-radius: 50%; background: #eeffcc; box-shadow: 0 2px 10px rgba(0,100,0,0.25); }
+    .style-frog .eye::before { width: 26px; height: 26px; background: radial-gradient(circle at 38% 35%, #44aa00 0%, #338800 40%, #225500 100%); }
+    .style-frog .eye::after { width: 12px; height: 8px; border-radius: 50%; background: #000; }
+    .style-frog .eyelid { background: #66aa44; }
+    .style-frog .pupil-shine { background: rgba(200,255,150,0.8); }
+
+    /* Spider - tiny dark cluster */
+    .style-spider .eye { width: 30px; height: 30px; background: #111; box-shadow: 0 0 8px rgba(100,0,0,0.4); }
+    .style-spider .eye::before { width: 16px; height: 16px; background: radial-gradient(circle, #440000 0%, #220000 60%, #000 100%); }
+    .style-spider .eye::after { width: 8px; height: 8px; background: #000; box-shadow: 0 0 4px rgba(200,0,0,0.4); }
+    .style-spider .eyelid { background: #111; }
+    .style-spider .pupil-shine { background: rgba(255,50,50,0.6); width: 4px; height: 4px; top: 6px; left: 10px; }
+
+    /* ══════════════════════════════════════
+       CULTURAL
+       ══════════════════════════════════════ */
+
+    /* Indian - deep kajal lined */
+    .style-indian .eye { background: #fff8f0; box-shadow: 0 0 0 3px #1a1a1a, 0 3px 12px rgba(0,0,0,0.3); }
+    .style-indian .eye::before { background: radial-gradient(circle at 38% 35%, #4a2800 0%, #331a00 40%, #1a0d00 100%); }
+    .style-indian .eyelid { background: #d4a574; }
+    .style-indian .pupil-shine { background: rgba(255,240,220,0.85); }
+
+    /* Egyptian - gold & kohl */
+    .style-egyptian .eye { background: #fffdf0; box-shadow: 0 0 0 2px #222, 4px 2px 0 2px #222, 0 2px 12px rgba(180,140,0,0.3); border-radius: 50% 55% 45% 50% / 65% 65% 35% 35%; }
+    .style-egyptian .eye::before { background: radial-gradient(circle at 38% 35%, #22aa88 0%, #118866 40%, #005544 100%); }
+    .style-egyptian .eyelid { background: #d4b060; }
+    .style-egyptian .pupil-shine { background: rgba(255,250,200,0.9); }
+
+    /* Japanese - soft anime */
+    .style-japanese .eye { width: 46px; height: 50px; border-radius: 45% 45% 50% 50% / 55% 55% 45% 45%; background: #fff; }
+    .style-japanese .eye::before { width: 26px; height: 26px; background: radial-gradient(circle at 40% 35%, #7b68ee 0%, #5b48ce 40%, #3a2890 100%); }
+    .style-japanese .eye::after { width: 12px; height: 12px; }
+    .style-japanese .eyelid { background: #f0e0d0; }
+    .style-japanese .pupil-shine { width: 8px; height: 8px; top: 10px; left: 18px; box-shadow: 5px 10px 0 3px rgba(255,255,255,0.6); }
+
+    /* Celtic - mossy green, earthy */
+    .style-celtic .eye { background: #f0f5e8; box-shadow: 0 0 0 2px #556b2f, 0 2px 10px rgba(85,107,47,0.3); }
+    .style-celtic .eye::before { background: radial-gradient(circle at 38% 35%, #6b8e23 0%, #556b2f 40%, #2e3d1a 100%); }
+    .style-celtic .eyelid { background: #8faa60; }
+
+    /* Aztec - obsidian + turquoise */
+    .style-aztec .eye { background: #1a1a1a; box-shadow: 0 0 0 2px #00b3a0, 0 0 10px rgba(0,179,160,0.3); }
+    .style-aztec .eye::before { background: radial-gradient(circle at 38% 35%, #00ccbb 0%, #008877 40%, #004d44 100%); }
+    .style-aztec .eye::after { background: #000; }
+    .style-aztec .eyelid { background: #1a1a1a; }
+    .style-aztec .pupil-shine { background: rgba(0,220,200,0.7); }
+
+    /* Greek - marble white, olive */
+    .style-greek .eye { background: #fafaf5; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.06), 0 2px 10px rgba(140,120,80,0.2); }
+    .style-greek .eye::before { background: radial-gradient(circle at 38% 35%, #8b7d5e 0%, #6b5d3e 40%, #4a3d22 100%); }
+    .style-greek .eyelid { background: #e8dcc8; }
+
+    /* Chinese - deep lacquer red */
+    .style-chinese .eye { background: #fff5f0; box-shadow: 0 0 0 2px #8b0000, 0 2px 10px rgba(139,0,0,0.25); }
+    .style-chinese .eye::before { background: radial-gradient(circle at 38% 35%, #331a00 0%, #1a0d00 40%, #000 100%); }
+    .style-chinese .eyelid { background: #e8c8a0; }
+
+    /* Maori - carved warrior */
+    .style-maori .eye { background: #f5e6d0; box-shadow: 0 0 0 3px #2a1a00, 0 2px 10px rgba(42,26,0,0.3); }
+    .style-maori .eye::before { background: radial-gradient(circle at 38% 35%, #553300 0%, #331a00 40%, #1a0d00 100%); }
+    .style-maori .eye::after { background: #000; }
+    .style-maori .eyelid { background: #8b6914; }
+
+    /* ══════════════════════════════════════
+       HISTORIC
+       ══════════════════════════════════════ */
+
+    /* Medieval - iron & stone */
+    .style-medieval .eye { background: #e8e0d0; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.15), 0 2px 8px rgba(80,60,30,0.3); }
+    .style-medieval .eye::before { background: radial-gradient(circle at 38% 35%, #8a7a5a 0%, #6a5a3a 40%, #3a2a1a 100%); }
+    .style-medieval .eyelid { background: #a09070; }
+
+    /* Victorian - elegant, muted violet */
+    .style-victorian .eye { background: #f8f0f8; box-shadow: 0 2px 10px rgba(100,60,120,0.2); }
+    .style-victorian .eye::before { background: radial-gradient(circle at 38% 35%, #9977aa 0%, #775588 40%, #553366 100%); }
+    .style-victorian .eyelid { background: #d8c0d8; }
+
+    /* Steampunk - brass & copper */
+    .style-steampunk .eye { border-radius: 50%; background: #2a2010; border: 2px solid #b8860b; box-shadow: 0 0 10px rgba(184,134,11,0.3); }
+    .style-steampunk .eye::before { width: 20px; height: 20px; background: radial-gradient(circle, #daa520 0%, #b8860b 50%, #8b6914 100%); border: 1px solid #ffd700; }
+    .style-steampunk .eye::after { width: 8px; height: 8px; background: #000; }
+    .style-steampunk .eyelid { background: #2a2010; }
+    .style-steampunk .pupil-shine { background: rgba(255,215,0,0.8); }
+
+    /* Rock Age - primal, earthy */
+    .style-rockage .eye { border-radius: 45% 55% 50% 50% / 60% 55% 45% 40%; background: #e8d8b8; box-shadow: 0 2px 8px rgba(80,60,20,0.3); }
+    .style-rockage .eye::before { background: radial-gradient(circle at 38% 35%, #8b7355 0%, #6b5335 40%, #4a3318 100%); }
+    .style-rockage .eye::after { width: 11px; height: 11px; }
+    .style-rockage .eyelid { background: #9a8060; }
+
+    /* Ice Age - frosted pale blue */
+    .style-iceage .eye { background: #e8f4ff; box-shadow: 0 0 12px rgba(150,200,255,0.4), inset 0 0 6px rgba(150,200,255,0.2); }
+    .style-iceage .eye::before { background: radial-gradient(circle at 38% 35%, #b0d4f1 0%, #7ab8e0 40%, #4a90c0 100%); }
+    .style-iceage .eye::after { background: radial-gradient(circle, #1a3050 0%, #000 70%); }
+    .style-iceage .eyelid { background: #c8ddf0; }
+    .style-iceage .pupil-shine { background: rgba(220,240,255,0.95); }
+
+    /* Renaissance - warm, painterly */
+    .style-renaissance .eye { background: #faf0e0; box-shadow: 0 2px 10px rgba(120,80,30,0.25); }
+    .style-renaissance .eye::before { background: radial-gradient(circle at 38% 35%, #7a9460 0%, #5a7440 40%, #3a5420 100%); }
+    .style-renaissance .eyelid { background: #e0c8a0; }
+
+    /* Baroque - ornate deep gold */
+    .style-baroque .eye { background: #1a1000; border: 2px solid #c8a820; box-shadow: 0 0 12px rgba(200,168,32,0.3); }
+    .style-baroque .eye::before { background: radial-gradient(circle at 38% 35%, #ffd700 0%, #c8a820 40%, #8b7500 100%); }
+    .style-baroque .eye::after { background: #0a0500; }
+    .style-baroque .eyelid { background: #1a1000; }
+    .style-baroque .pupil-shine { background: rgba(255,215,0,0.85); }
+
+    /* ══════════════════════════════════════
+       SPOOKY
+       ══════════════════════════════════════ */
+
+    /* Zombie - sickly green */
+    .style-zombie .eye { background: #e8e0c0; box-shadow: inset -2px -2px 6px rgba(0,0,0,0.15), 0 2px 10px rgba(100,120,0,0.3); }
+    .style-zombie .eye::before { background: radial-gradient(circle at 38% 35%, #b8cc22 0%, #8a9900 40%, #556600 100%); }
+    .style-zombie .eyelid { background: #7a8855; }
+    .style-zombie .pupil-shine { background: rgba(200,220,100,0.6); }
+
+    /* Ghost - pale translucent */
+    .style-ghost .eye { background: rgba(220,230,255,0.7); box-shadow: 0 0 14px rgba(180,200,255,0.3); }
+    .style-ghost .eye::before { background: radial-gradient(circle at 38% 35%, #b0c0dd 0%, #8090aa 40%, #506080 100%); }
+    .style-ghost .eye::after { background: radial-gradient(circle, #304060 0%, #102040 70%); }
+    .style-ghost .eyelid { background: rgba(200,210,230,0.8); }
+    .style-ghost .pupil-shine { background: rgba(220,230,255,0.8); }
+
+    /* Vampire - crimson on pale */
+    .style-vampire .eye { background: #f0e8e8; box-shadow: 0 0 12px rgba(150,0,0,0.3); }
+    .style-vampire .eye::before { background: radial-gradient(circle at 38% 35%, #cc2244 0%, #990022 40%, #550011 100%); }
+    .style-vampire .eyelid { background: #d0c0c0; }
+
+    /* Alien - huge, solid black */
+    .style-alien .eye { width: 50px; height: 56px; border-radius: 45% 45% 50% 50% / 50% 50% 50% 50%; background: #050505; box-shadow: 0 0 16px rgba(100,200,100,0.3); }
+    .style-alien .eye::before { width: 30px; height: 34px; background: radial-gradient(ellipse at 40% 35%, #112211 0%, #050505 60%); }
+    .style-alien .eye::after { display: none; }
+    .style-alien .eyelid { background: #0a0a0a; }
+    .style-alien .pupil-shine { background: rgba(100,255,100,0.3); width: 8px; height: 10px; top: 12px; left: 16px; }
+
+    /* Cyclops (single center eye variant — uses CSS to hide left eye) */
+    .style-cyclops .eye:first-child { display: none; }
+    .style-cyclops .eye { width: 56px; height: 56px; border-radius: 50%; background: #f5f0e0; box-shadow: 0 0 14px rgba(160,120,40,0.3); }
+    .style-cyclops .eye::before { width: 30px; height: 30px; background: radial-gradient(circle at 38% 35%, #ccaa44 0%, #aa8822 40%, #775500 100%); }
+    .style-cyclops .eye::after { width: 14px; height: 14px; }
+    .style-cyclops .eyelid { background: #b0a070; }
+
+    /* Possessed - glowing white-out */
+    .style-possessed .eye { background: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.8); }
+    .style-possessed .eye::before { background: radial-gradient(circle, #fff 0%, #eee 50%, #ddd 100%); }
+    .style-possessed .eye::after { display: none; }
+    .style-possessed .eyelid { background: #ccbbaa; }
+    .style-possessed .pupil-shine { display: none; }
+
+    /* ══════════════════════════════════════
+       GLAM
+       ══════════════════════════════════════ */
+
+    /* Golden - regal */
+    .style-golden .eye { background: #fffdf0; box-shadow: inset -3px -3px 6px rgba(180,140,0,0.12), 0 2px 14px rgba(200,160,0,0.3); }
+    .style-golden .eye::before { background: radial-gradient(circle at 38% 35%, #ffd700 0%, #daa520 40%, #a07800 100%); }
+    .style-golden .eyelid { background: #e8c860; }
+    .style-golden .pupil-shine { background: rgba(255,245,200,0.95); }
+
+    /* Diamond - sparkling white-blue */
+    .style-diamond .eye { background: #f8faff; box-shadow: 0 0 16px rgba(180,200,255,0.4), inset 0 0 6px rgba(180,200,255,0.15); }
+    .style-diamond .eye::before { background: radial-gradient(circle at 38% 35%, #c0d8ff 0%, #88aaee 40%, #5577cc 100%); }
+    .style-diamond .eyelid { background: #dde4f0; }
+    .style-diamond .pupil-shine { background: #fff; box-shadow: 3px 5px 0 1px rgba(255,255,255,0.7), -2px 7px 0 1px rgba(200,220,255,0.5), 6px 2px 0 0px rgba(255,255,255,0.4); }
+
+    /* Kawaii - big round purple */
+    .style-kawaii .eye { width: 48px; height: 48px; border-radius: 50%; background: #fff; }
+    .style-kawaii .eye::before { width: 28px; height: 28px; background: radial-gradient(circle at 40% 35%, #7b68ee 0%, #5b48ce 40%, #3a2890 100%); }
+    .style-kawaii .eye::after { width: 12px; height: 12px; }
+    .style-kawaii .eyelid { background: #f0e8ff; }
+    .style-kawaii .pupil-shine { width: 8px; height: 8px; top: 8px; left: 18px; box-shadow: 6px 10px 0 3px rgba(255,255,255,0.6); }
+
+    /* Lashes - classic with visible lashes */
+    .style-lashes .lashes { display: block; }
+    .style-lashes .lashes span { background: #333; }
+    .style-lashes .eye { background: #fff; }
+    .style-lashes .eye::before { background: radial-gradient(circle at 38% 35%, #5c8abf 0%, #3a6fa0 40%, #1a3a5c 100%); }
+    .style-lashes .eyelid { background: #f5c6a0; }
+
+    /* Diva - glamorous purple + lashes */
+    .style-diva .lashes { display: block; }
+    .style-diva .lashes span { background: #2a0040; height: 7px; }
+    .style-diva .lashes span:nth-child(3) { height: 9px; }
+    .style-diva .eye { background: #fff5ff; box-shadow: 0 0 12px rgba(150,0,200,0.25); }
+    .style-diva .eye::before { background: radial-gradient(circle at 38% 35%, #bb66ff 0%, #9933cc 40%, #660099 100%); }
+    .style-diva .eyelid { background: #e8c8f0; }
+    .style-diva .pupil-shine { box-shadow: 4px 5px 0 2px rgba(255,255,255,0.6); }
+
+    /* Starry - dark with star sparkles */
+    .style-starry .eye { background: #050510; box-shadow: 0 0 14px rgba(200,200,255,0.3); }
+    .style-starry .eye::before { background: radial-gradient(circle at 38% 35%, #aabbff 0%, #6677cc 40%, #334488 100%); }
+    .style-starry .eye::after { background: #000; }
+    .style-starry .eyelid { background: #050510; }
+    .style-starry .pupil-shine { background: #fff; box-shadow: 5px 4px 0 1px #fff, -3px 8px 0 0px rgba(200,200,255,0.7), 8px 8px 0 0px rgba(200,200,255,0.5), -5px 2px 0 0px rgba(255,255,255,0.4); }
+
+    /* Holographic - iridescent shimmer */
+    .style-holographic .eye { background: #f0f0f0; box-shadow: 0 0 14px rgba(255,100,200,0.2); }
+    .style-holographic .eye::before { background: conic-gradient(from 0deg at 50% 50%, #ff6b9d, #c44dff, #44aaff, #44ffaa, #ffdd44, #ff6b9d); }
+    .style-holographic .eye::after { background: radial-gradient(circle, #222 0%, #000 70%); }
+    .style-holographic .eyelid { background: #e0d8e8; }
+    .style-holographic .pupil-shine { background: rgba(255,255,255,0.95); }
+
+    /* Princess - ultra girly, big lashes, pink-rose, sparkle-heavy */
+    .style-princess .lashes { display: block; }
+    .style-princess .lashes span { background: #660044; width: 2.5px; height: 8px; }
+    .style-princess .lashes span:nth-child(1) { height: 7px; transform: rotate(-30deg); }
+    .style-princess .lashes span:nth-child(2) { height: 9px; transform: rotate(-15deg); }
+    .style-princess .lashes span:nth-child(3) { height: 10px; transform: rotate(0deg); }
+    .style-princess .lashes span:nth-child(4) { height: 9px; transform: rotate(15deg); }
+    .style-princess .lashes span:nth-child(5) { height: 7px; transform: rotate(30deg); }
+    .style-princess .eye {
+      width: 48px; height: 48px;
+      background: #fff5fa;
+      border-radius: 50%;
+      box-shadow: 0 0 18px rgba(255,80,160,0.35), inset -2px -2px 4px rgba(255,105,180,0.1);
+    }
+    .style-princess .eye::before {
+      width: 26px; height: 26px;
+      background: radial-gradient(circle at 38% 35%, #ff7eb3 0%, #e84393 35%, #c23074 70%, #8e1a5a 100%);
+    }
+    .style-princess .eye::after { width: 11px; height: 11px; }
+    .style-princess .eyelid { background: #ffb6d4; }
+    .style-princess .pupil-shine {
+      width: 8px; height: 8px; top: 8px; left: 18px;
+      background: rgba(255,255,255,0.95);
+      box-shadow:
+        5px 8px 0 2px rgba(255,255,255,0.7),
+        -2px 10px 0 1px rgba(255,200,230,0.6),
+        8px 3px 0 1px rgba(255,220,240,0.5);
+    }
+
+    /* Thor - crackling lightning eyes */
+    .style-thor .eye {
+      background: #0a0a1a;
+      box-shadow:
+        0 0 20px rgba(100,180,255,0.6),
+        0 0 40px rgba(100,180,255,0.2),
+        inset 0 0 10px rgba(100,180,255,0.3);
+    }
+    .style-thor .eye::before {
+      background: radial-gradient(circle at 38% 35%, #ffffff 0%, #88ccff 25%, #4488ff 50%, #0044cc 100%);
+      box-shadow: 0 0 10px rgba(100,180,255,0.8);
+    }
+    .style-thor .eye::after {
+      background: radial-gradient(circle, #fff 0%, #aaddff 50%, #4488ff 100%);
+      box-shadow: 0 0 6px rgba(150,200,255,0.9);
+    }
+    .style-thor .eyelid { background: #0a0a1a; }
+    .style-thor .pupil-shine {
+      background: #fff;
+      box-shadow: 0 0 4px 2px rgba(150,200,255,0.9);
+    }
+
+    /* Lightning bolt drawn via clip-path */
+    .bolt {
+      display: none;
+      position: absolute;
+      z-index: 2;
+      opacity: 0;
+    }
+    .bolt svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 3px rgba(120,200,255,0.9)) drop-shadow(0 0 6px rgba(80,160,255,0.5));
+    }
+    .bolt svg path {
+      fill: none;
+      stroke: #aaddff;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .style-thor .bolt { display: block; }
+
+    /* Flash the whole eye on strike */
+    .style-thor .eye.flash {
+      box-shadow:
+        0 0 35px rgba(180,220,255,1),
+        0 0 70px rgba(150,200,255,0.5),
+        inset 0 0 16px rgba(180,220,255,0.6);
+    }
+
+    @keyframes bolt-strike {
+      0% { opacity: 0; }
+      5% { opacity: 1; }
+      15% { opacity: 0.4; }
+      25% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="eyes-container" id="eyesContainer">
+    <div class="eye">
+      <span class="pupil-shine"></span>
+      <div class="lashes"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="bolt"></div>
+      <div class="bolt"></div>
+      <div class="eyelid"></div>
+    </div>
+    <div class="eye">
+      <span class="pupil-shine"></span>
+      <div class="lashes"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="bolt"></div>
+      <div class="bolt"></div>
+      <div class="eyelid"></div>
+    </div>
+  </div>
+  <script>
+    const container = document.getElementById('eyesContainer');
+
+    // Apply style from settings
+    function applyStyle(style) {
+      const classes = ['eyes-container'];
+      if (style && style !== 'classic') classes.push('style-' + style);
+      container.className = classes.join(' ');
+    }
+
+    window.api.onStyleChange(applyStyle);
+
+    // JS-driven blink — both eyes perfectly in sync
+    function doBlink() {
+      container.classList.add('blink');
+      setTimeout(() => {
+        container.classList.remove('blink');
+        // Double blink after a short pause
+        setTimeout(() => {
+          container.classList.add('blink');
+          setTimeout(() => container.classList.remove('blink'), 120);
+        }, 600);
+      }, 150);
+    }
+
+    // Blink loop: first blink at ~1.2s, then every 3s
+    setTimeout(() => {
+      doBlink();
+      setInterval(doBlink, 3000);
+    }, 1200);
+
+    // ── Thor lightning bolts ──
+    // Generate a random zigzag bolt path as SVG
+    function makeBoltSVG(w, h) {
+      const segments = 3 + Math.floor(Math.random() * 3); // 3-5 segments
+      let x = w * (0.3 + Math.random() * 0.4);
+      let y = 0;
+      let d = `M${x.toFixed(1)},${y.toFixed(1)}`;
+      for (let i = 0; i < segments; i++) {
+        y += h / segments;
+        x += (Math.random() - 0.5) * w * 0.8;
+        x = Math.max(1, Math.min(w - 1, x));
+        d += ` L${x.toFixed(1)},${y.toFixed(1)}`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><path d="${d}"/></svg>`;
+    }
+
+    function strikeBolt(boltEl, eyeEl) {
+      const size = eyeEl.offsetWidth || 44;
+      // Random position & size for the bolt
+      const bw = 10 + Math.random() * 14;
+      const bh = 16 + Math.random() * 20;
+      const bx = Math.random() * (size - bw);
+      const by = Math.random() * (size - bh) * 0.6;
+
+      boltEl.style.left = bx + 'px';
+      boltEl.style.top = by + 'px';
+      boltEl.style.width = bw + 'px';
+      boltEl.style.height = bh + 'px';
+      boltEl.innerHTML = makeBoltSVG(bw, bh);
+      boltEl.style.animation = 'none';
+      boltEl.offsetHeight; // force reflow
+      const duration = 150 + Math.random() * 250;
+      boltEl.style.animation = `bolt-strike ${duration}ms ease-out forwards`;
+
+      // Flash the eye
+      eyeEl.classList.add('flash');
+      setTimeout(() => eyeEl.classList.remove('flash'), duration * 0.6);
+    }
+
+    let lightningInterval = null;
+    function startLightning() {
+      if (lightningInterval) return;
+      const eyes = container.querySelectorAll('.eye');
+      lightningInterval = setInterval(() => {
+        eyes.forEach(eye => {
+          const bolts = eye.querySelectorAll('.bolt');
+          // Strike 1-2 bolts randomly
+          const count = Math.random() > 0.5 ? 2 : 1;
+          for (let i = 0; i < count; i++) {
+            if (bolts[i]) strikeBolt(bolts[i], eye);
+          }
+        });
+      }, 400 + Math.random() * 800);
+    }
+
+    function stopLightning() {
+      if (lightningInterval) {
+        clearInterval(lightningInterval);
+        lightningInterval = null;
+      }
+      container.querySelectorAll('.bolt').forEach(b => {
+        b.style.animation = 'none';
+        b.style.opacity = '0';
+      });
+    }
+
+    // Start/stop lightning when style changes
+    function checkLightning() {
+      if (container.classList.contains('style-thor')) {
+        startLightning();
+      } else {
+        stopLightning();
+      }
+    }
+
+    // Patch applyStyle to also handle lightning
+    const _origApply = applyStyle;
+    applyStyle = function(style) {
+      _origApply(style);
+      checkLightning();
+    };
+
+    // Initial check
+    window.api.getSettings().then(s => { applyStyle(s.style); });
+  </script>
+</body>
+</html>

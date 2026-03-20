@@ -1,0 +1,12 @@
+{
+  "name": "the-blinking-guy",
+  "version": "1.0.0",
+  "description": "A blink reminder app for developers who forget to blink",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^34.5.8"
+  }
+}
