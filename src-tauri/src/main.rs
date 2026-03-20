@@ -86,22 +86,29 @@ fn reposition_overlay(app: &tauri::AppHandle, settings: &Settings) {
 fn create_overlay(app: &tauri::AppHandle, settings: &Settings) {
     let (x, y) = get_overlay_position(app, &settings.corner);
 
-    let overlay = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
+    let mut builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("Overlay")
         .inner_size(140.0, 80.0)
         .position(x, y)
         .decorations(false)
-        .transparent(true)
-        .shadow(false)
         .background_color(tauri::webview::Color(0, 0, 0, 0))
         .always_on_top(true)
         .skip_taskbar(true)
         .focused(false)
         .resizable(false)
-        .visible(false)
-        .build()
-        .expect("failed to create overlay window");
+        .visible(false);
 
+    // Platform-specific: transparent + shadow removal
+    #[cfg(target_os = "windows")]
+    {
+        builder = builder.transparent(true).shadow(false);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.title_bar_style(tauri::TitleBarStyle::Transparent);
+    }
+
+    let overlay = builder.build().expect("failed to create overlay window");
     overlay.set_ignore_cursor_events(true).ok();
 }
 
