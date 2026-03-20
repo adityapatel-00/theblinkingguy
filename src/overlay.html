@@ -564,7 +564,10 @@
       container.className = classes.join(' ');
     }
 
-    window.api.onStyleChange(applyStyle);
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+
+    listen('style-changed', (event) => applyStyle(event.payload));
 
     // JS-driven blink — both eyes perfectly in sync
     function doBlink() {
@@ -668,7 +671,7 @@
     };
 
     // Initial check
-    window.api.getSettings().then(s => { applyStyle(s.style); });
+    invoke('get_settings').then(s => { applyStyle(s.style); });
   </script>
 </body>
 </html>
