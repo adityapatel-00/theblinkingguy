@@ -511,6 +511,9 @@
   <div class="status" id="status">Settings saved!</div>
 
   <script>
+    const { invoke } = window.__TAURI__.core;
+    const { getCurrentWebviewWindow } = window.__TAURI__.webviewWindow;
+
     const intervalSelect = document.getElementById('interval');
     const durationSelect = document.getElementById('displayDuration');
     const posBtns = document.querySelectorAll('.pos-btn');
@@ -572,7 +575,7 @@
     });
 
     // ── Load settings ──
-    window.api.getSettings().then(settings => {
+    invoke('get_settings').then(settings => {
       intervalSelect.value = String(settings.interval);
       durationSelect.value = String(settings.displayDuration);
       setActiveCorner(settings.corner);
@@ -581,14 +584,23 @@
 
     // ── Save settings ──
     saveBtn.addEventListener('click', async () => {
-      await window.api.saveSettings({
-        interval: parseInt(intervalSelect.value, 10),
-        displayDuration: parseInt(durationSelect.value, 10),
-        corner: selectedCorner,
-        style: selectedStyle,
+      await invoke('save_settings', {
+        newSettings: {
+          interval: parseInt(intervalSelect.value, 10),
+          displayDuration: parseInt(durationSelect.value, 10),
+          corner: selectedCorner,
+          style: selectedStyle,
+        }
       });
       status.classList.add('show');
       setTimeout(() => status.classList.remove('show'), 2000);
+    });
+
+    // Hide window on close instead of destroying (keep tray alive)
+    const appWindow = getCurrentWebviewWindow();
+    appWindow.onCloseRequested(async (event) => {
+      event.preventDefault();
+      await appWindow.hide();
     });
   </script>
 </body>

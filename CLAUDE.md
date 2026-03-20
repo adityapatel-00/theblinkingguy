@@ -4,27 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"The Blinking Guy" is an Electron desktop app that reminds developers to blink by showing an animated eye overlay at a configurable screen corner on a timer. It runs as a system tray application on Windows.
+"The Blinking Guy" is a Tauri v2 desktop app that reminds developers to blink by showing an animated eye overlay at a configurable screen corner on a timer. It runs as a system tray application on Windows.
 
 ## Commands
 
-- **Run the app:** `npm start` (runs `electron .`)
-- **Install dependencies:** `npm install`
+- **Run the app (dev):** `npm run tauri:dev` (compiles Rust + launches app with hot-reload)
+- **Build for production:** `npm run tauri:build` (creates installer in `src-tauri/target/release/bundle/`)
+- **Install dependencies:** `npm install` (JS), `cd src-tauri && cargo check` (Rust)
 
-There is no build step, test suite, or linter configured.
+There is no test suite or linter configured.
 
 ## Architecture
 
-This is a single-process Electron app with three source files:
+Tauri v2 app with Rust backend + vanilla HTML/CSS/JS frontend:
 
-- **main.js** — Main process. Creates the system tray, manages two windows (overlay + settings), handles IPC, and runs the blink timer via `setInterval`. Settings are persisted as JSON in Electron's `userData` directory.
-- **preload.js** — Exposes `window.api` with `getSettings()`, `saveSettings()`, and `onStyleChange()` via `contextBridge`.
-- **overlay.html** — Frameless, transparent, always-on-top window (140×80px) that displays animated blinking eyes. Contains multiple eye styles (classic, anime, pixel, minimal, etc.) toggled via CSS classes. Shown/hidden by the main process timer.
-- **settings.html** — Settings UI with controls for interval, screen corner, display duration, and eye style selection. Communicates with main process through the preload API.
+### Backend (Rust) — `src-tauri/src/`
+
+- **main.rs** — App entry point. Sets up system tray, creates overlay window at runtime, runs blink timer on a background thread, registers IPC command handlers (`get_settings`, `save_settings`). Manages `AppState` with a `Mutex<Settings>`.
+- **settings.rs** — `Settings` struct with serde serialization (`camelCase` for JS compatibility). Load/save to JSON in the app data directory.
+
+### Frontend — `src/`
+
+- **overlay.html** — Frameless, transparent, always-on-top window (140×80px) that displays animated blinking eyes. Contains 47 eye styles across 7 categories, all as CSS classes. JS-driven synchronized blink animation. Thor style has random SVG lightning bolts.
+- **settings.html** — Settings UI with tabbed/scrollable eye style picker (categories: Modern, Fantasy, Animals, Cultural, Historic, Spooky, Glam), interval/duration dropdowns, 5-position grid, and live position preview. Communicates with Rust via `window.__TAURI__.core.invoke()`.
+
+### Configuration — `src-tauri/`
+
+- **tauri.conf.json** — Window definitions (settings window static, overlay created at runtime), tray icon config, build settings.
+- **capabilities/default.json** — IPC permissions for both windows.
+- **Cargo.toml** — Rust dependencies: tauri (tray-icon, image-png features), serde, serde_json.
 
 ### Key patterns
 
-- The overlay window is created once and shown/hidden on each blink cycle — it is never recreated.
-- `setIgnoreMouseEvents(true)` makes the overlay click-through.
-- Settings changes from the settings window trigger `repositionOverlay()` + `startBlinking()` restart, and notify the overlay of style changes via `style-changed` IPC event.
+- The overlay window is created once at startup and shown/hidden on each blink cycle — it is never recreated.
+- `set_ignore_cursor_events(true)` makes the overlay click-through.
+- Settings changes trigger overlay repositioning and notify the overlay of style changes via the `style-changed` Tauri event.
+- The blink timer runs on a dedicated Rust thread, re-reading settings from shared state each iteration.
 - All UI (styles, animations, layout) is inline within the HTML files — there are no external CSS or JS files.
+- Frontend uses `withGlobalTauri: true` to access Tauri APIs via `window.__TAURI__` without npm imports.
