@@ -55,14 +55,19 @@ fn get_overlay_position(app: &tauri::AppHandle, corner: &str) -> (f64, f64) {
     let ow = 140.0;
     let oh = 80.0;
     let margin = 20.0;
-    // Extra margin for bottom positions to avoid taskbar overlap.
-    // monitor.size() returns full screen (not work area), so we add
-    // ~48px to clear a standard Windows taskbar.
-    let bottom_margin = 68.0;
+
+    // OS-aware margins: monitor.size() returns full screen (not work area),
+    // so we compensate for taskbar/dock depending on platform.
+    // Windows: taskbar at bottom (~48px), macOS: dock at bottom (~70px) + menu bar at top (~25px)
+    let (top_margin, bottom_margin) = if cfg!(target_os = "macos") {
+        (45.0, 90.0) // menu bar + some padding, dock + padding
+    } else {
+        (margin, 68.0) // standard Windows taskbar
+    };
 
     match corner {
-        "top-left" => (margin, margin),
-        "top-right" => (w - ow - margin, margin),
+        "top-left" => (margin, top_margin),
+        "top-right" => (w - ow - margin, top_margin),
         "bottom-left" => (margin, h - oh - bottom_margin),
         "centre" => ((w - ow) / 2.0, (h - oh) / 2.0),
         _ => (w - ow - margin, h - oh - bottom_margin), // bottom-right default
