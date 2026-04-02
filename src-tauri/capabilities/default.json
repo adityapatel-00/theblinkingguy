@@ -1,7 +1,7 @@
 {
   "identifier": "default",
   "description": "Default capabilities for the app",
-  "windows": ["settings", "overlay"],
+  "windows": ["settings", "overlay", "overlay-*"],
   "permissions": [
     "core:default",
     "core:window:default",
@@ -9,8 +9,12 @@
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
     "core:event:default",
     "core:event:allow-listen",
-    "core:event:allow-emit"
+    "core:event:allow-emit",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

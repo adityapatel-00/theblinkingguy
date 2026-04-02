@@ -14,6 +14,9 @@
       justify-content: center;
       -webkit-app-region: no-drag;
     }
+    body.arranging {
+      cursor: move;
+    }
 
     .eyes-container {
       display: flex;
@@ -556,25 +559,35 @@
   </div>
   <script>
     const container = document.getElementById('eyesContainer');
+    const params = new URLSearchParams(window.location.search);
+    const pairId = params.get('pairId');
 
-    // Apply style from settings
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+    const { getCurrentWebviewWindow } = window.__TAURI__.webviewWindow;
+    const appWindow = getCurrentWebviewWindow();
+
+    let currentPair = null;
+    let isArranging = false;
+
     function applyStyle(style) {
       const classes = ['eyes-container'];
       if (style && style !== 'classic') classes.push('style-' + style);
       container.className = classes.join(' ');
+      checkLightning();
     }
 
-    const { invoke } = window.__TAURI__.core;
-    const { listen } = window.__TAURI__.event;
+    function applyPairState(pair, arranging) {
+      currentPair = pair;
+      isArranging = arranging;
+      applyStyle(pair.style);
+      document.body.classList.toggle('arranging', arranging);
+    }
 
-    listen('style-changed', (event) => applyStyle(event.payload));
-
-    // JS-driven blink — both eyes perfectly in sync
     function doBlink() {
       container.classList.add('blink');
       setTimeout(() => {
         container.classList.remove('blink');
-        // Double blink after a short pause
         setTimeout(() => {
           container.classList.add('blink');
           setTimeout(() => container.classList.remove('blink'), 120);
@@ -582,16 +595,13 @@
       }, 150);
     }
 
-    // Blink loop: first blink at ~1.2s, then every 3s
     setTimeout(() => {
       doBlink();
       setInterval(doBlink, 3000);
     }, 1200);
 
-    // ── Thor lightning bolts ──
-    // Generate a random zigzag bolt path as SVG
     function makeBoltSVG(w, h) {
-      const segments = 3 + Math.floor(Math.random() * 3); // 3-5 segments
+      const segments = 3 + Math.floor(Math.random() * 3);
       let x = w * (0.3 + Math.random() * 0.4);
       let y = 0;
       let d = `M${x.toFixed(1)},${y.toFixed(1)}`;
@@ -606,7 +616,6 @@
 
     function strikeBolt(boltEl, eyeEl) {
       const size = eyeEl.offsetWidth || 44;
-      // Random position & size for the bolt
       const bw = 10 + Math.random() * 14;
       const bh = 16 + Math.random() * 20;
       const bx = Math.random() * (size - bw);
@@ -618,11 +627,10 @@
       boltEl.style.height = bh + 'px';
       boltEl.innerHTML = makeBoltSVG(bw, bh);
       boltEl.style.animation = 'none';
-      boltEl.offsetHeight; // force reflow
+      boltEl.offsetHeight;
       const duration = 150 + Math.random() * 250;
       boltEl.style.animation = `bolt-strike ${duration}ms ease-out forwards`;
 
-      // Flash the eye
       eyeEl.classList.add('flash');
       setTimeout(() => eyeEl.classList.remove('flash'), duration * 0.6);
     }
@@ -634,7 +642,6 @@
       lightningInterval = setInterval(() => {
         eyes.forEach(eye => {
           const bolts = eye.querySelectorAll('.bolt');
-          // Strike 1-2 bolts randomly
           const count = Math.random() > 0.5 ? 2 : 1;
           for (let i = 0; i < count; i++) {
             if (bolts[i]) strikeBolt(bolts[i], eye);
@@ -648,13 +655,12 @@
         clearInterval(lightningInterval);
         lightningInterval = null;
       }
-      container.querySelectorAll('.bolt').forEach(b => {
-        b.style.animation = 'none';
-        b.style.opacity = '0';
+      container.querySelectorAll('.bolt').forEach(bolt => {
+        bolt.style.animation = 'none';
+        bolt.style.opacity = '0';
       });
     }
 
-    // Start/stop lightning when style changes
     function checkLightning() {
       if (container.classList.contains('style-thor')) {
         startLightning();
@@ -663,15 +669,23 @@
       }
     }
 
-    // Patch applyStyle to also handle lightning
-    const _origApply = applyStyle;
-    applyStyle = function(style) {
-      _origApply(style);
-      checkLightning();
-    };
+    document.body.addEventListener('pointerdown', async () => {
+      if (!isArranging) return;
+      await appWindow.startDragging();
+    });
 
-    // Initial check
-    invoke('get_settings').then(s => { applyStyle(s.style); });
+    listen('pair-state-changed', (event) => {
+      const payload = event.payload;
+      if (!payload?.pair || payload.pair.id !== pairId) return;
+      applyPairState(payload.pair, payload.arranging);
+    });
+
+    invoke('get_settings').then(settings => {
+      const pair = settings.pairs.find(item => item.id === pairId) || settings.pairs[0];
+      if (pair) {
+        applyPairState(pair, false);
+      }
+    });
   </script>
 </body>
 </html>
